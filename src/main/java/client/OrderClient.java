@@ -5,7 +5,6 @@ import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.response.Response;
 import model.Ingredients;
 import model.Order;
-import org.hamcrest.Matchers;
 
 import static io.restassured.RestAssured.given;
 
@@ -43,20 +42,6 @@ public class OrderClient {
     }
 
 
-    @Step("Создание заказа без ингредиентов")
-    public void checkFailedResponseForOrderWithoutIngredients(Response response) {
-        response.then().log().all()
-                .assertThat().statusCode(400).and().body("success", Matchers.is(false))
-                .and().body("message", Matchers.is("Ingredient ids must be provided"));
-    }
-
-
-    @Step("Создание заказа с неверным хэшем ингредиентов")
-    public void checkFailedResponseForOrderWithInvalidIngredientHashCode(Response response) {
-        response.then().log().all()
-                .assertThat().statusCode(500);
-    }
-
     @Step("Получение списка заказов авторизованным пользователем")
     public static Response getUserOrderListWithAuthorization(String token) {
         return given().log().all()
@@ -72,22 +57,6 @@ public class OrderClient {
                 .header("Content-Type", "application/json")
                 .when()
                 .get(ORDER_ENDPOINT);
-    }
-
-    @Step("Получение списка заказов авторизованным пользователем")
-    public static void checkSuccessfulResponseForGetUserOrdersWithAuthorization(Response response) {
-        response.then().log().all()
-                .assertThat().statusCode(200).and().body("success", Matchers.is(true))
-                .and().body("orders", Matchers.notNullValue())
-                .and().body("total", Matchers.any(Integer.class))
-                .and().body("totalToday", Matchers.any(Integer.class));
-    }
-
-    @Step("Получение списка заказов без авторизации")
-    public static void checkFailedResponseForGetUserOrdersWithoutAuthorization(Response response) {
-        response.then().log().all()
-                .assertThat().statusCode(401).and().body("success", Matchers.is(false))
-                .and().body("message", Matchers.is("You should be authorised"));
     }
 
 }

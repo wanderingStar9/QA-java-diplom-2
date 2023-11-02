@@ -1,31 +1,33 @@
+import client.OrderResponseCheckClient;
 import client.UserClient;
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import model.User;
 import org.junit.After;
 import org.junit.Before;
+import client.UserResponseCheckClient;
 
 public class BaseUserTest {
-    protected String email;
-    protected String password;
-    protected String name;
     protected User user;
     protected UserClient userClient;
+    protected UserResponseCheckClient userResponseCheckClient;
+    protected OrderResponseCheckClient orderResponseCheckClient;
+    protected String accessToken;
 
     @Before
     public void setUp() {
         RestAssured.baseURI = "http://stellarburgers.nomoreparties.site";
-        email = "samuraj999@ya.ru";
-        password = "qwerty1234";
-        name = "Simon";
         user = new User();
         userClient = new UserClient();
+        userResponseCheckClient = new UserResponseCheckClient();
+        orderResponseCheckClient = new OrderResponseCheckClient();
     }
 
     @After
     public void tearDown() {
-        String accessToken = UserClient.checkRequestUserLogin(user).then().extract().path("accessToken");
-        if (accessToken !=null) {
-            userClient.deleteUser(accessToken);
+        if (userClient.getToken(user) !=null) {
+            Response response = userClient.deleteUser(UserClient.getToken(user));
+            userResponseCheckClient.checkSuccessResponseDeleteUser(response);
         }
     }
 }

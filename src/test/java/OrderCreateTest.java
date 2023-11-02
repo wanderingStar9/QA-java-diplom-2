@@ -1,4 +1,5 @@
 import client.OrderClient;
+import client.OrderResponseCheckClient;
 import client.UserClient;
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
@@ -7,38 +8,30 @@ import io.restassured.response.Response;
 import model.Ingredients;
 import model.Order;
 import model.User;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
+
 
 public class OrderCreateTest {
-    private String email;
-    private String password;
-    private String name;
     private UserClient userClient;
-    private User user;
     private String accessToken;
     private OrderClient orderClient;
     private List<String> ingredient;
     private Order order;
+    private OrderResponseCheckClient orderResponseCheckClient;
+    private final User user = User.createRandomUser();
 
 
     @Before
     public void setUp() {
         RestAssured.baseURI = "http://stellarburgers.nomoreparties.site";
-        email = "samuraj999@ya.ru";
-        password = "qwerty1234";
-        name = "Simon";
         userClient = new UserClient();
         orderClient = new OrderClient();
-        user = new User(email, password, name);
-        UserClient.postCreateNewUser(user);
-        accessToken = UserClient.checkRequestUserLogin(user).then().extract().path("accessToken");
+        orderResponseCheckClient = new OrderResponseCheckClient();
         ingredient = new ArrayList<>();
         order = new Order(ingredient);
     }
@@ -47,6 +40,8 @@ public class OrderCreateTest {
     @DisplayName("Создание заказа с авторизациией и ингредиентами")
     @Description("Успешное создание заказа с авторизацией и ингредиентами")
     public void createOrderWithAuthorizationTest() {
+        UserClient.postCreateNewUser(user);
+        accessToken = UserClient.getToken(user);
         Ingredients ingredients = orderClient.getIngredient();
         ingredient.add(ingredients.getData().get(1).get_id());
         ingredient.add(ingredients.getData().get(2).get_id());
@@ -56,17 +51,7 @@ public class OrderCreateTest {
         ingredient.add(ingredients.getData().get(7).get_id());
         ingredient.add(ingredients.getData().get(8).get_id());
         Response response = OrderClient.createOrderWithAuthorization(order, accessToken);
-        response.then().log().all()
-                .assertThat().statusCode(200).and().body("success", Matchers.is(true))
-                .and().body("name", Matchers.notNullValue())
-                .and().body("order.number", Matchers.any(Integer.class))
-                .and().body("order.ingredients", Matchers.notNullValue())
-                .and().body("order._id", Matchers.notNullValue())
-                .and().body("order.owner.name", Matchers.is(name))
-                .and().body("order.owner.email", Matchers.is(email.toLowerCase(Locale.ROOT)))
-                .and().body("order.status", Matchers.is("done"))
-                .and().body("order.name", Matchers.notNullValue())
-                .and().body("order.price", Matchers.notNullValue());
+        OrderResponseCheckClient.checkSuccessResponseForOrderWithAuthorization(response, user.getName(), user.getEmail());
     }
 
     @Test
@@ -78,11 +63,7 @@ public class OrderCreateTest {
         ingredient.add(ingredients.getData().get(2).get_id());
         ingredient.add(ingredients.getData().get(3).get_id());
         Response response = OrderClient.createOrderWithoutAuthorization(order);
-        response.then().log().all()
-                .assertThat().body("success", Matchers.is(true))
-                .and().body("name", Matchers.notNullValue())
-                .and().body("order.number", Matchers.any(Integer.class))
-                .and().statusCode(200);
+        orderResponseCheckClient.checkReponseForOrderWithoutAuthorization(response);
     }
 
 
@@ -90,8 +71,10 @@ public class OrderCreateTest {
     @DisplayName("Создание заказа с авторизацией без ингредиентов")
     @Description("Проверка создания заказа с авторизацией без ингредиентов")
     public void createEmptyOrderWithAuthorization() {
+        UserClient.postCreateNewUser(user);
+        accessToken = UserClient.getToken(user);
         Response response = OrderClient.createOrderWithAuthorization(order, accessToken);
-        orderClient.checkFailedResponseForOrderWithoutIngredients(response);
+        orderResponseCheckClient.checkFailedResponseForOrderWithoutIngredients(response);
     }
 
 
@@ -99,11 +82,13 @@ public class OrderCreateTest {
     @DisplayName("Создание заказа с авторизацией с неверным хешем ингредиентов")
     @Description("Проверка созданияgi заказа с авторизацией с неверным хешем ингредиентов")
     public void createOrderWithAuthorizationWithWrongHashTest() {
+        UserClient.postCreateNewUser(user);
+        accessToken = UserClient.getToken(user);
         Ingredients ingredients = orderClient.getIngredient();
         ingredient.add(ingredients.getData().get(1).get_id() + "0");
         ingredient.add(ingredients.getData().get(2).get_id() + "0");
         Response response = OrderClient.createOrderWithAuthorization(order, accessToken);
-        orderClient.checkFailedResponseForOrderWithInvalidIngredientHashCode(response);
+        orderResponseCheckClient.checkFailedResponseForOrderWithInvalidIngredientHashCode(response);
     }
 
     @After

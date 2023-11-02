@@ -5,16 +5,18 @@ import io.restassured.response.Response;
 import model.User;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import static org.apache.http.HttpStatus.SC_OK;
 
 public class UserLoginTest extends BaseUserTest {
+    private final User user = User.createRandomUser();
+
     @Test
     @DisplayName("Авторизация пользователя")
     @Description("Авторизация пользователя под существующем логином")
     public void authorizationTest() {
-        user = new User(email, password, name);
         UserClient.postCreateNewUser(user);
         Response response = UserClient.checkRequestUserLogin(user);
-        response.then().log().all().assertThat().statusCode(200).and().body("success", Matchers.is(true))
+        response.then().log().all().assertThat().statusCode(SC_OK).and().body("success", Matchers.is(true))
                 .and().body("accessToken", Matchers.notNullValue())
                 .and().body("refreshToken", Matchers.notNullValue())
                 .and().body("user.email", Matchers.notNullValue())
@@ -25,27 +27,25 @@ public class UserLoginTest extends BaseUserTest {
     @DisplayName("Авторизация с неверным логином")
     @Description("Авторизация пользователя c некорректным логином")
     public void authorizationIncorrectLoginTest() {
-        user = new User(email, password);
-        user.setEmail("Alkjd2000" + email);
+        user.setEmail("Alkjd2000" + user.getEmail());
         Response response = UserClient.checkRequestUserLogin(user);
-        userClient.checkFailedResponseUserLogin(response);
+        userResponseCheckClient.checkFailedResponseUserLogin(response);
     }
 
     @Test
     @DisplayName("Авторизация с неверным паролем")
     @Description("Авторизация пользователя c некорректным паролем")
     public void authorizationIncorrectPasswordTest() {
-        user = new User(email, password);
-        user.setPassword("dljfgh" + password);
+        user.setPassword("dljfgh" + user.getPassword());
         Response response = UserClient.checkRequestUserLogin(user);
-        userClient.checkFailedResponseUserLogin(response);
+        userResponseCheckClient.checkFailedResponseUserLogin(response);
     }
 
     @Test
     @DisplayName("Авторизация без логина и пароля")
     @Description("Авторизация пользователя без логина и пароля")
     public void authorizationWithoutLoginAndPasswordTest() {
-        Response response = UserClient.checkRequestUserLogin(user);
-        userClient.checkFailedResponseUserLogin(response);
+        Response response = UserClient.checkRequestUserLogin(new User("", ""));
+        userResponseCheckClient.checkFailedResponseUserLogin(response);
     }
 }
